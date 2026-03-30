@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自己管理アプリ</title>
+<style>
+:root {
+  --bg: #0f1729;
+  --bg2: #1a2340;
+  --bg3: #243056;
+  --accent: #4a90d9;
+  --accent2: #6cb4ee;
+  --text: #e8ecf4;
+  --text2: #8b9dc3;
+  --success: #4caf50;
+  --warn: #ff9800;
+  --danger: #e74c3c;
+  --border: #2d3a5c;
+  --card: #1e2b4a;
+  --radius: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', 'Hiragino Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 70px;
+}
+/* Tab Navigation */
+.tab-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--bg2);
+  display: flex;
+  border-top: 1px solid var(--border);
+  z-index: 100;
+  padding: 4px 0 env(safe-area-inset-bottom, 4px);
+}
+.tab-btn {
+  flex: 1;
+  background: none; border: none; color: var(--text2);
+  padding: 8px 2px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: color .2s;
+}
+.tab-btn.active { color: var(--accent2); }
+.tab-btn .icon { font-size: 20px; }
+
+/* Header */
+.header {
+  background: var(--bg2);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.header h1 { font-size: 18px; font-weight: 600; }
+.header .date { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+/* Page */
+.page { display: none; padding: 16px; max-width: 600px; margin: 0 auto; }
+.page.active { display: block; }
+
+/* Cards */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.card h3 { font-size: 14px; color: var(--accent2); margin-bottom: 10px; }
+
+/* Form */
+label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 4px; }
+input, select, textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 15px;
+  margin-bottom: 12px;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 60px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+  width: 100%;
+}
+.btn:hover { background: var(--accent2); }
+.btn.secondary { background: var(--bg3); color: var(--text); }
+.btn.danger { background: var(--danger); }
+.btn.success { background: var(--success); }
+.btn-sm { padding: 6px 12px; font-size: 12px; width: auto; }
+
+/* Study subject chips */
+.subject-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text2);
+  transition: all .2s;
+}
+.chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* Mood selector */
+.mood-selector { display: flex; gap: 8px; margin-bottom: 12px; }
+.mood-btn {
+  font-size: 28px;
+  background: var(--bg3);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.mood-btn.active { border-color: var(--accent); background: var(--bg2); transform: scale(1.1); }
+
+/* Star rating */
+.star-rating { display: flex; gap: 4px; margin-bottom: 12px; }
+.star {
+  font-size: 28px;
+  cursor: pointer;
+  color: var(--bg3);
+  transition: color .2s;
+}
+.star.filled { color: #ffc107; }
+
+/* Records list */
+.record-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.record-item:last-child { border-bottom: none; }
+.record-item .subject { color: var(--accent2); font-weight: 500; }
+.record-item .time { color: var(--text2); }
+.record-item .del-btn {
+  background: none; border: none; color: var(--danger); cursor: pointer; font-size: 16px; padding: 4px;
+}
+
+/* Chart */
+.chart-container { position: relative; margin-top: 12px; }
+.bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; padding-top: 8px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bar {
+  width: 100%;
+  max-width: 40px;
+  border-radius: 4px 4px 0 0;
+  transition: height .3s;
+}
+.bar-label { font-size: 10px; color: var(--text2); white-space: nowrap; }
+.bar-value { font-size: 10px; color: var(--text); }
+
+/* Weight chart line */
+.weight-chart { width: 100%; height: 160px; }
+
+/* Training preset */
+.preset-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+
+/* Timeline */
+.timeline-item {
+  padding: 12px;
+  border-left: 3px solid var(--accent);
+  margin-left: 8px;
+  margin-bottom: 8px;
+  background: var(--bg3);
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+}
+.timeline-item .tl-date { color: var(--accent2); font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+.timeline-item .tl-content { color: var(--text2); line-height: 1.5; }
+
+/* Report preview */
+.report-preview {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  font-family: monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+/* Summary cards */
+.summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.summary-card {
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 14px;
+  text-align: center;
+}
+.summary-card .num { font-size: 24px; font-weight: 700; color: var(--accent2); }
+.summary-card .lbl { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* Toast */
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--success); color: #fff;
+  padding: 10px 24px; border-radius: 8px;
+  font-size: 14px; z-index: 200;
+  opacity: 0; transition: opacity .3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* Training row */
+.training-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto;
+  gap: 6px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+.training-row input, .training-row select { margin-bottom: 0; }
+.training-row .small-input { width: 60px; }
+
+/* Scrollable */
+.scroll-h { overflow-x: auto; }
+
+/* Responsive */
+@media (max-width: 400px) {
+  .summary-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tab-btn { font-size: 9px; }
+  .tab-btn .icon { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>自己管理アプリ</h1>
+  <div class="date" id="headerDate"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Dashboard -->
+<div class="page active" id="pageDashboard">
+  <div class="summary-grid" id="summaryGrid"></div>
+  <div class="card">
+    <h3>7日間タイムライン</h3>
+    <div id="timeline"></div>
+  </div>
+  <div class="card">
+    <h3>週間勉強時間</h3>
+    <div class="bar-chart" id="weeklyChart"></div>
+  </div>
+</div>
+
+<!-- Study -->
+<div class="page" id="pageStudy">
+  <div class="card">
+    <h3>勉強を記録</h3>
+    <label>科目</label>
+    <div class="subject-chips" id="subjectChips"></div>
+    <div id="topicSection" style="display:none;">
+      <label>分野（詳細）</label>
+      <div id="topicChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;max-height:180px;overflow-y:auto;padding:2px;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div><label>時間</label><input type="number" id="studyHours" min="0" max="23" value="0"></div>
+      <div><label>分</label><input type="number" id="studyMins" min="0" max="59" value="0"></div>
+    </div>
+    <label>メモ</label>
+    <textarea id="studyMemo" placeholder="今日の学び..."></textarea>
+    <button class="btn" onclick="saveStudy()">保存</button>
+  </div>
+  <div class="card">
+    <h3>今日の記録</h3>
+    <div id="studyRecords"></div>
+  </div>
+  <div class="card">
+    <h3>科目別合計（今月）</h3>
+    <div class="bar-chart" id="subjectChart"></div>
+  </div>
+  <div class="card" id="topicChartCard" style="display:none;">
+    <h3 id="topicChartTitle">分野別実績（今月）</h3>
+    <div id="topicList"></div>
+  </div>
+</div>
+
+<!-- Health -->
+<div class="page" id="pageHealth">
+  <div class="card">
+    <h3>体調を記録</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div><label>起床時刻</label><input type="time" id="wakeTime" onchange="calcSleep()" oninput="calcSleep()"></div>
+      <div><label>就寝時刻</label><input type="time" id="bedTime" onchange="calcSleep()" oninput="calcSleep()"></div>
+    </div>
+    <label>睡眠時間（自動計算）</label>
+    <input type="number" id="sleepHours" min="0" max="24" step="0.5" placeholder="7.5">
+    <label>体調</label>
+    <div class="star-rating" id="conditionStars"></div>
+    <label>ストレス</label>
+    <div class="star-rating" id="stressStars"></div>
+    <label>気分</label>
+    <div class="mood-selector" id="moodSelector"></div>
+    <label>食事</label>
+    <div class="subject-chips" id="mealChips">
+      <span class="chip" id="mealAsa" onclick="toggleMeal('asa')">朝</span>
+      <span class="chip" id="mealHiru" onclick="toggleMeal('hiru')">昼</span>
+      <span class="chip" id="mealYoru" onclick="toggleMeal('yoru')">夜</span>
+    </div>
+    <label>アルコール</label>
+    <button class="btn secondary" id="alcoholBtn" onclick="toggleAlcohol()" style="margin-bottom:12px;">なし</button>
+    <label>メモ</label>
+    <textarea id="healthMemo" placeholder="症状、気づきなど..."></textarea>
+    <button class="btn" onclick="saveHealth()">保存</button>
+  </div>
+  <div class="card">
+    <h3>今日の記録</h3>
+    <div id="healthRecord"></div>
+  </div>
+  <div class="card">
+    <h3>睡眠トレンド（7日間）</h3>
+    <div class="bar-chart" id="sleepChart"></div>
+  </div>
+</div>
+
+<!-- Physical -->
+<div class="page" id="pagePhysical">
+  <div class="card">
+    <h3>体重</h3>
+    <div style="display:flex;gap:8px;align-items:end;">
+      <div style="flex:1;"><label>今日の体重 (kg)</label><input type="number" id="weightInput" step="0.1" placeholder="70.0"></div>
+      <button class="btn btn-sm" style="margin-bottom:12px;" onclick="saveWeight()">保存</button>
+    </div>
+    <canvas id="weightCanvas" class="weight-chart"></canvas>
+  </div>
+  <div class="card">
+    <h3>トレーニング</h3>
+    <label>クイック追加</label>
+    <div class="preset-list" id="presetList"></div>
+    <div id="trainingRows"></div>
+    <button class="btn secondary btn-sm" onclick="addTrainingRow()" style="margin-bottom:10px;">+ 種目を追加</button>
+    <button class="btn" onclick="saveTraining()">トレーニングを保存</button>
+  </div>
+  <div class="card">
+    <h3>今日のトレーニング</h3>
+    <div id="trainingRecords"></div>
+  </div>
+</div>
+
+<!-- Report -->
+<div class="page" id="pageReport">
+  <div class="card">
+    <h3>日報生成</h3>
+    <label>日付</label>
+    <input type="date" id="reportDate">
+    <button class="btn secondary" onclick="generateReport()" style="margin-bottom:12px;">生成する</button>
+    <div class="report-preview" id="reportPreview">「生成する」をクリックして日報を作成します。</div>
+    <button class="btn success" onclick="copyReport()">クリップボードにコピー</button>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="page" id="pageSettings">
+  <div class="card">
+    <h3>科目設定</h3>
+    <div id="subjectSettings"></div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <input type="text" id="newSubject" placeholder="新しい科目名" style="margin-bottom:0;">
+      <button class="btn btn-sm" onclick="addSubject()">追加</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>トレーニング種目</h3>
+    <div id="presetSettings"></div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <input type="text" id="newPreset" placeholder="新しい種目名" style="margin-bottom:0;">
+      <button class="btn btn-sm" onclick="addPreset()">追加</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>分野管理</h3>
+    <label>科目を選択</label>
+    <select id="topicSubjectSelect" onchange="renderTopicSettings()" style="margin-bottom:12px;"></select>
+    <div id="topicSettings"></div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <input type="text" id="newTopic" placeholder="新しい分野名" style="margin-bottom:0;">
+      <button class="btn btn-sm" onclick="addTopicToSubject()">追加</button>
+    </div>
+    <p style="font-size:11px;color:var(--text2);margin-top:8px;">※ デフォルト分野（財計・管理）は削除できません</p>
+  </div>
+  <div class="card">
+    <h3>データ管理</h3>
+    <button class="btn secondary" onclick="exportData()" style="margin-bottom:8px;">データをエクスポート (JSON)</button>
+    <label for="importFile">データをインポート</label>
+    <input type="file" id="importFile" accept=".json" onchange="importData(event)">
+  </div>
+  <div class="card">
+    <h3>Claude API（準備中）</h3>
+    <label>APIキー</label>
+    <input type="password" id="apiKey" placeholder="sk-ant-..." disabled>
+    <p style="font-size:12px;color:var(--text2);">AIによる自動コメント機能は今後のアップデートで追加予定です。</p>
+  </div>
+</div>
+
+<!-- Tab bar -->
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('Dashboard')"><span class="icon">🏠</span>ホーム</button>
+  <button class="tab-btn" onclick="switchTab('Study')"><span class="icon">📚</span>勉強</button>
+  <button class="tab-btn" onclick="switchTab('Health')"><span class="icon">💊</span>体調</button>
+  <button class="tab-btn" onclick="switchTab('Physical')"><span class="icon">💪</span>体力</button>
+  <button class="tab-btn" onclick="switchTab('Report')"><span class="icon">📋</span>日報</button>
+  <button class="tab-btn" onclick="switchTab('Settings')"><span class="icon">⚙️</span>設定</button>
+</nav>
+
+<script>
+// ===== Storage =====
+const KEYS = {
+  study: 'sm_study',
+  health: 'sm_health',
+  weight: 'sm_weight',
+  training: 'sm_training',
+  subjects: 'sm_subjects',
+  presets: 'sm_presets',
+  topics: 'sm_topics'
+};
+
+function load(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } }
+function save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+function today() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function formatDate(d) { return d.replace(/-/g, '/'); }
+
+// ===== Default data =====
+const DEFAULT_SUBJECTS = ['財務会計論（計算）', '財務会計論（理論）', '管理会計論', '監査論', '企業法', '租税法'];
+const DEFAULT_PRESETS = ['ベンチプレス', 'スクワット', 'デッドリフト', '懸垂', 'ショルダープレス', 'ランニング'];
+const MOODS = ['😊', '😐', '😔', '😤', '🤢', '😴'];
+
+const SUBJECT_TOPICS = {
+  '財務会計論（計算）': [
+    '現金預金', '有形固定資産', '無形固定資産・繰延資産', '引当金・経過勘定',
+    '商品売買・棚卸資産', '有価証券', '手形・債権債務', 'リース会計',
+    '研究開発費・ソフトウェア', '減損会計', '税効果会計', '外貨建取引',
+    '社債・新株予約権付社債', '本支店会計', '退職給付会計', '資産除去債務',
+    '純資産', 'ストック・オプション', '収益認識', 'デリバティブ',
+    '会計方針の変更・期中財務諸表', '連結会計', '持分法・包括利益',
+    '在外子会社・在外支店', 'CF計算書（個別）', 'CF計算書（連結）',
+    '企業結合・事業分離', '1株当たり情報・分配可能額', 'セグメント情報'
+  ],
+  '財務会計論（理論）': [
+    '財務会計の基礎概念・一般原則', 'B/S・P/L総論・収益費用アプローチ',
+    '損益会計・資産会計総論', '負債会計・資本会計（伝統論）', '棚卸資産の評価',
+    '研究開発費・固定資産の減損', '退職給付・資産除去債務', '資本会計（会計基準論点）',
+    'ストック・オプション', '外貨建取引等・税効果会計', '収益認識', 'リース',
+    '金融商品・期中財務諸表', '会計方針の開示・誤謬の訂正', '連結財務諸表',
+    '持分法・包括利益', '退職給付（連結）・在外事業体', '企業結合・事業分離',
+    '連結CF・概念フレームワーク', '概念フレームワーク（応用）・連結税効果',
+    '会計基準等・セグメント情報開示'
+  ],
+  '管理会計論': [
+    '原価計算総論・費目別計算総論', '材料費', '労務費', '経費・製造間接費',
+    '部門別計算', '個別原価計算', '単純総合原価計算', '工程別総合原価計算',
+    '組別・等級別総合原価計算', '連産品', '標準原価計算', '製造業の財務諸表',
+    '原価計算基準', '直接原価計算・管理会計の基礎', '短期利益計画',
+    '予算管理', '財務情報分析', '資金管理・CF管理',
+    '戦術的意思決定（差額原価収益分析）', '戦略的意思決定（設備投資の経済性計算）',
+    '分権組織・グループ経営の管理会計', '原価管理', '活動基準原価計算（ABC）'
+  ]
+};
+
+function getSubjects() { const s = load(KEYS.subjects); return s.length ? s : DEFAULT_SUBJECTS; }
+function getPresets() { const p = load(KEYS.presets); return p.length ? p : DEFAULT_PRESETS; }
+function loadTopicsStore() { try { return JSON.parse(localStorage.getItem(KEYS.topics)) || {}; } catch { return {}; } }
+function saveTopicsStore(store) { localStorage.setItem(KEYS.topics, JSON.stringify(store)); }
+function getTopics(subject) {
+  const defaults = SUBJECT_TOPICS[subject] || [];
+  const custom = loadTopicsStore()[subject] || [];
+  const merged = [...defaults];
+  custom.forEach(t => { if (!merged.includes(t)) merged.push(t); });
+  return merged;
+}
+
+// ===== Tab Navigation =====
+function switchTab(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page' + name).classList.add('active');
+  const btns = document.querySelectorAll('.tab-btn');
+  const tabs = ['Dashboard','Study','Health','Physical','Report','Settings'];
+  btns[tabs.indexOf(name)]?.classList.add('active');
+  if (name === 'Dashboard') renderDashboard();
+  if (name === 'Study') renderStudy();
+  if (name === 'Health') renderHealth();
+  if (name === 'Physical') renderPhysical();
+  if (name === 'Report') { document.getElementById('reportDate').value = today(); }
+  if (name === 'Settings') renderSettings();
+}
+
+// ===== Toast =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ===== Study =====
+let selectedSubject = '';
+let selectedTopic = '';
+
+function renderSubjectChips() {
+  const el = document.getElementById('subjectChips');
+  el.innerHTML = getSubjects().map(s =>
+    `<span class="chip ${s === selectedSubject ? 'active' : ''}" onclick="selectSubject('${s.replace(/'/g,"&#39;")}')">${s}</span>`
+  ).join('');
+}
+
+function selectSubject(s) {
+  if (s !== selectedSubject) selectedTopic = '';
+  selectedSubject = s;
+  renderSubjectChips();
+  const topics = getTopics(s);
+  const section = document.getElementById('topicSection');
+  if (topics.length) {
+    section.style.display = 'block';
+    renderTopicChips(topics);
+    renderTopicList(s);
+    document.getElementById('topicChartCard').style.display = 'block';
+    document.getElementById('topicChartTitle').textContent = s + ' 分野別実績（今月）';
+  } else {
+    section.style.display = 'none';
+    document.getElementById('topicChartCard').style.display = 'none';
+  }
+}
+
+function renderTopicChips(topics) {
+  document.getElementById('topicChips').innerHTML = topics.map((t, i) =>
+    `<span class="chip ${t === selectedTopic ? 'active' : ''}" onclick="selectTopicByIndex(${i})" style="font-size:12px;">${t}</span>`
+  ).join('');
+}
+
+function selectTopicByIndex(i) {
+  const topics = getTopics(selectedSubject);
+  selectedTopic = topics[i] || '';
+  renderTopicChips(topics);
+}
+
+function saveStudy() {
+  if (!selectedSubject) { showToast('科目を選択してください'); return; }
+  if (getTopics(selectedSubject).length && !selectedTopic) { showToast('分野を選択してください'); return; }
+  const h = parseInt(document.getElementById('studyHours').value) || 0;
+  const m = parseInt(document.getElementById('studyMins').value) || 0;
+  if (h === 0 && m === 0) { showToast('勉強時間を入力してください'); return; }
+  const data = load(KEYS.study);
+  data.push({
+    date: today(),
+    subject: selectedSubject,
+    topic: selectedTopic || '',
+    minutes: h * 60 + m,
+    memo: document.getElementById('studyMemo').value,
+    id: Date.now()
+  });
+  save(KEYS.study, data);
+  document.getElementById('studyHours').value = 0;
+  document.getElementById('studyMins').value = 0;
+  document.getElementById('studyMemo').value = '';
+  showToast('保存しました！');
+  renderStudy();
+}
+
+function deleteStudy(id) {
+  const data = load(KEYS.study).filter(r => r.id !== id);
+  save(KEYS.study, data);
+  renderStudy();
+}
+
+function renderStudyRecords() {
+  const records = load(KEYS.study).filter(r => r.date === today());
+  const el = document.getElementById('studyRecords');
+  if (!records.length) { el.innerHTML = '<p style="color:var(--text2);font-size:13px;">まだ記録がありません。</p>'; return; }
+  el.innerHTML = records.map(r => {
+    const h = Math.floor(r.minutes / 60);
+    const m = r.minutes % 60;
+    const topicBadge = r.topic ? `<span style="font-size:11px;color:var(--accent2);margin-left:4px;">[${r.topic}]</span>` : '';
+    return `<div class="record-item">
+      <div><span class="subject">${r.subject}</span>${topicBadge}</div>
+      <span class="time">${h}h${m.toString().padStart(2,'0')}m</span>
+      <button class="del-btn" onclick="deleteStudy(${r.id})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function renderSubjectChart() {
+  const data = load(KEYS.study);
+  const month = today().slice(0, 7);
+  const subjects = getSubjects();
+  const totals = {};
+  subjects.forEach(s => totals[s] = 0);
+  data.filter(r => r.date.startsWith(month)).forEach(r => { totals[r.subject] = (totals[r.subject] || 0) + r.minutes; });
+  const max = Math.max(...Object.values(totals), 1);
+  const colors = ['#4a90d9','#6cb4ee','#4caf50','#ff9800','#e74c3c','#9b59b6'];
+  document.getElementById('subjectChart').innerHTML = subjects.map((s, i) => {
+    const h = Math.floor(totals[s] / 60);
+    const m = totals[s] % 60;
+    const pct = (totals[s] / max * 100);
+    const lbl = s.replace('財務会計論（計算）','財計(計)').replace('財務会計論（理論）','財計(理)').replace('管理会計論','管理').replace('監査論','監査').replace('企業法','企業').replace('租税法','租税');
+    return `<div class="bar-col">
+      <div class="bar-value" style="font-size:9px;">${h}h${m}m</div>
+      <div class="bar" style="height:${Math.max(pct, 2)}%;background:${colors[i % colors.length]};"></div>
+      <div class="bar-label" style="font-size:9px;">${lbl}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTopicList(subject) {
+  const topics = getTopics(subject);
+  if (!topics.length) return;
+  const data = load(KEYS.study);
+  const month = today().slice(0, 7);
+  const totals = {};
+  topics.forEach(t => totals[t] = 0);
+  data.filter(r => r.date.startsWith(month) && r.subject === subject && r.topic)
+      .forEach(r => { totals[r.topic] = (totals[r.topic] || 0) + r.minutes; });
+  const maxMin = Math.max(...Object.values(totals), 1);
+  const sorted = topics.slice().sort((a, b) => totals[b] - totals[a]);
+  document.getElementById('topicList').innerHTML = sorted.map(t => {
+    const min = totals[t];
+    const h = Math.floor(min / 60), m = min % 60;
+    const pct = min / maxMin * 100;
+    return `<div style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+        <span style="color:${min > 0 ? 'var(--text)' : 'var(--text2)'};">${t}</span>
+        <span style="color:var(--accent2);min-width:48px;text-align:right;">${min > 0 ? h + 'h' + m.toString().padStart(2,'0') + 'm' : '-'}</span>
+      </div>
+      <div style="height:6px;background:var(--bg3);border-radius:3px;">
+        <div style="height:100%;width:${Math.max(pct,0)}%;background:var(--accent);border-radius:3px;transition:width .3s;"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderStudy() {
+  renderSubjectChips();
+  renderStudyRecords();
+  renderSubjectChart();
+  // topic section visibility
+  if (selectedSubject && getTopics(selectedSubject).length) {
+    document.getElementById('topicSection').style.display = 'block';
+    renderTopicChips(getTopics(selectedSubject));
+    document.getElementById('topicChartCard').style.display = 'block';
+    document.getElementById('topicChartTitle').textContent = selectedSubject + ' 分野別実績（今月）';
+    renderTopicList(selectedSubject);
+  } else {
+    document.getElementById('topicSection').style.display = 'none';
+    document.getElementById('topicChartCard').style.display = 'none';
+  }
+}
+
+// ===== Health =====
+let conditionRating = 0;
+let stressRating = 0;
+let selectedMood = '';
+let meals = { asa: false, hiru: false, yoru: false };
+let alcohol = false;
+
+function calcSleep() {
+  const wake = document.getElementById('wakeTime').value;
+  const bed = document.getElementById('bedTime').value;
+  if (!wake || !bed) return;
+  const [wh, wm] = wake.split(':').map(Number);
+  const [bh, bm] = bed.split(':').map(Number);
+  let wakeMin = wh * 60 + wm;
+  let bedMin = bh * 60 + bm;
+  if (bedMin > wakeMin) bedMin -= 24 * 60; // 前日就寝
+  const diff = wakeMin - bedMin;
+  document.getElementById('sleepHours').value = Math.round(diff / 60 * 10) / 10;
+}
+
+function renderConditionStars() {
+  document.getElementById('conditionStars').innerHTML = [1,2,3,4,5].map(i =>
+    `<span class="star ${i <= conditionRating ? 'filled' : ''}" onclick="setCondition(${i})">★</span>`
+  ).join('');
+}
+function setCondition(n) { conditionRating = n; renderConditionStars(); }
+
+function renderStressStars() {
+  document.getElementById('stressStars').innerHTML = [1,2,3,4,5].map(i =>
+    `<span class="star ${i <= stressRating ? 'filled' : ''}" style="${i <= stressRating ? 'color:#e74c3c' : ''}" onclick="setStress(${i})">★</span>`
+  ).join('');
+}
+function setStress(n) { stressRating = n; renderStressStars(); }
+
+function renderMoodSelector() {
+  document.getElementById('moodSelector').innerHTML = MOODS.map(m =>
+    `<span class="mood-btn ${m === selectedMood ? 'active' : ''}" onclick="setMood('${m}')">${m}</span>`
+  ).join('');
+}
+function setMood(m) { selectedMood = m; renderMoodSelector(); }
+
+function toggleMeal(key) {
+  meals[key] = !meals[key];
+  ['asa','hiru','yoru'].forEach(k => {
+    document.getElementById('meal' + k.charAt(0).toUpperCase() + k.slice(1)).classList.toggle('active', meals[k]);
+  });
+}
+
+function toggleAlcohol() {
+  alcohol = !alcohol;
+  const btn = document.getElementById('alcoholBtn');
+  btn.textContent = alcohol ? 'あり🍺' : 'なし';
+  btn.style.background = alcohol ? 'var(--warn)' : '';
+  btn.style.color = alcohol ? '#fff' : '';
+}
+
+function saveHealth() {
+  calcSleep();
+  let sleep = parseFloat(document.getElementById('sleepHours').value);
+  if (isNaN(sleep)) sleep = 0;
+  const data = load(KEYS.health);
+  const filtered = data.filter(r => r.date !== today());
+  filtered.push({
+    date: today(),
+    wakeTime: document.getElementById('wakeTime').value,
+    bedTime: document.getElementById('bedTime').value,
+    sleep,
+    condition: conditionRating,
+    stress: stressRating,
+    mood: selectedMood,
+    meals: { ...meals },
+    alcohol,
+    memo: document.getElementById('healthMemo').value
+  });
+  save(KEYS.health, filtered);
+  showToast('保存しました！');
+  renderHealth();
+}
+
+function renderHealthRecord() {
+  const rec = load(KEYS.health).find(r => r.date === today());
+  const el = document.getElementById('healthRecord');
+  if (!rec) { el.innerHTML = '<p style="color:var(--text2);font-size:13px;">まだ記録がありません。</p>'; return; }
+  const stars = '★'.repeat(rec.condition) + '☆'.repeat(5 - rec.condition);
+  const stress = rec.stress ? '★'.repeat(rec.stress) + '☆'.repeat(5 - rec.stress) : '-';
+  const mealStr = rec.meals ? [rec.meals.asa && '朝', rec.meals.hiru && '昼', rec.meals.yoru && '夜'].filter(Boolean).join('・') || 'なし' : '-';
+  el.innerHTML = `<div style="font-size:14px;line-height:2;">
+    ${rec.wakeTime ? `起床: ${rec.wakeTime} / 就寝: ${rec.bedTime}<br>` : ''}
+    睡眠: ${rec.sleep}h<br>
+    体調: ${stars}<br>
+    ストレス: <span style="color:#e74c3c">${stress}</span><br>
+    気分: ${rec.mood || '-'}<br>
+    食事: ${mealStr}<br>
+    アルコール: ${rec.alcohol ? 'あり🍺' : 'なし'}<br>
+    ${rec.memo ? 'メモ: ' + rec.memo : ''}
+  </div>`;
+}
+
+function renderSleepChart() {
+  const data = load(KEYS.health);
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  const max = 12;
+  document.getElementById('sleepChart').innerHTML = days.map(d => {
+    const rec = data.find(r => r.date === d);
+    const val = rec ? rec.sleep : 0;
+    const pct = val / max * 100;
+    return `<div class="bar-col">
+      <div class="bar-value">${val || '-'}</div>
+      <div class="bar" style="height:${Math.max(pct, 2)}%;background:${val >= 7 ? 'var(--success)' : val >= 5 ? 'var(--warn)' : 'var(--danger)'};"></div>
+      <div class="bar-label">${d.slice(5)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderHealth() {
+  conditionRating = 0; stressRating = 0; selectedMood = '';
+  meals = { asa: false, hiru: false, yoru: false }; alcohol = false;
+  renderConditionStars();
+  renderStressStars();
+  renderMoodSelector();
+  // Pre-fill if today exists
+  const rec = load(KEYS.health).find(r => r.date === today());
+  if (rec) {
+    if (rec.wakeTime) document.getElementById('wakeTime').value = rec.wakeTime;
+    if (rec.bedTime) document.getElementById('bedTime').value = rec.bedTime;
+    document.getElementById('sleepHours').value = rec.sleep;
+    conditionRating = rec.condition || 0;
+    stressRating = rec.stress || 0;
+    selectedMood = rec.mood || '';
+    if (rec.meals) meals = { ...rec.meals };
+    alcohol = rec.alcohol || false;
+    document.getElementById('healthMemo').value = rec.memo || '';
+    renderConditionStars();
+    renderStressStars();
+    renderMoodSelector();
+    ['asa','hiru','yoru'].forEach(k => {
+      document.getElementById('meal' + k.charAt(0).toUpperCase() + k.slice(1)).classList.toggle('active', meals[k]);
+    });
+    const btn = document.getElementById('alcoholBtn');
+    btn.textContent = alcohol ? 'あり🍺' : 'なし';
+    btn.style.background = alcohol ? 'var(--warn)' : '';
+    btn.style.color = alcohol ? '#fff' : '';
+  }
+  renderHealthRecord();
+  renderSleepChart();
+}
+
+// ===== Physical =====
+function saveWeight() {
+  const w = parseFloat(document.getElementById('weightInput').value);
+  if (isNaN(w)) { showToast('体重を入力してください'); return; }
+  const data = load(KEYS.weight);
+  const filtered = data.filter(r => r.date !== today());
+  filtered.push({ date: today(), weight: w });
+  save(KEYS.weight, filtered);
+  showToast('保存しました！');
+  renderWeightChart();
+}
+
+function renderWeightChart() {
+  const canvas = document.getElementById('weightCanvas');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const data = load(KEYS.weight).sort((a, b) => a.date.localeCompare(b.date)).slice(-30);
+  if (data.length === 0) {
+    ctx.fillStyle = '#8b9dc3';
+    ctx.font = '13px sans-serif';
+    ctx.fillText('体重を記録するとグラフが表示されます', 10, H / 2);
+    return;
+  }
+  if (data.length === 1) {
+    ctx.fillStyle = '#8b9dc3';
+    ctx.font = '13px sans-serif';
+    ctx.fillText(`${data[0].date.replace(/-/g,'/')}: ${data[0].weight}kg（2件以上でグラフ表示）`, 10, H / 2);
+    return;
+  }
+  const weights = data.map(d => d.weight);
+  const min = Math.min(...weights) - 1;
+  const max = Math.max(...weights) + 1;
+  const padL = 40, padR = 10, padT = 10, padB = 30;
+  const cW = W - padL - padR, cH = H - padT - padB;
+
+  // Grid
+  ctx.strokeStyle = '#2d3a5c';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (cH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillStyle = '#8b9dc3';
+    ctx.font = '10px sans-serif';
+    ctx.fillText((max - (max - min) / 4 * i).toFixed(1), 2, y + 4);
+  }
+
+  // Line
+  ctx.strokeStyle = '#4a90d9';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  data.forEach((d, i) => {
+    const x = padL + (cW / (data.length - 1)) * i;
+    const y = padT + cH - ((d.weight - min) / (max - min)) * cH;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Points
+  data.forEach((d, i) => {
+    const x = padL + (cW / (data.length - 1)) * i;
+    const y = padT + cH - ((d.weight - min) / (max - min)) * cH;
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#6cb4ee';
+    ctx.fill();
+  });
+
+  // X labels
+  ctx.fillStyle = '#8b9dc3';
+  ctx.font = '9px sans-serif';
+  const step = Math.max(1, Math.floor(data.length / 6));
+  data.forEach((d, i) => {
+    if (i % step === 0 || i === data.length - 1) {
+      const x = padL + (cW / (data.length - 1)) * i;
+      ctx.fillText(d.date.slice(5), x - 12, H - 5);
+    }
+  });
+}
+
+// Training
+let trainingRowCount = 0;
+
+function addTrainingRow(exercise, weight, reps, sets) {
+  trainingRowCount++;
+  const id = trainingRowCount;
+  const el = document.getElementById('trainingRows');
+  const div = document.createElement('div');
+  div.className = 'training-row';
+  div.id = 'trow' + id;
+  div.innerHTML = `
+    <input type="text" placeholder="種目名" value="${exercise || ''}" class="tr-name">
+    <input type="number" placeholder="kg" class="small-input tr-weight" value="${weight || ''}">
+    <input type="number" placeholder="回" class="small-input tr-reps" value="${reps || ''}">
+    <input type="number" placeholder="セット" class="small-input tr-sets" value="${sets || ''}">
+    <button class="btn btn-sm danger" onclick="document.getElementById('trow${id}').remove()">×</button>
+  `;
+  el.appendChild(div);
+}
+
+function addPresetRow(name) { addTrainingRow(name, '', '', ''); }
+
+function renderPresets() {
+  document.getElementById('presetList').innerHTML = getPresets().map(p =>
+    `<span class="chip" onclick="addPresetRow('${p}')">${p}</span>`
+  ).join('');
+}
+
+function saveTraining() {
+  const rows = document.querySelectorAll('#trainingRows .training-row');
+  if (!rows.length) { showToast('種目を追加してください'); return; }
+  const exercises = [];
+  rows.forEach(row => {
+    const name = row.querySelector('.tr-name').value;
+    const w = row.querySelector('.tr-weight').value;
+    const r = row.querySelector('.tr-reps').value;
+    const s = row.querySelector('.tr-sets').value;
+    if (name) exercises.push({ name, weight: w, reps: r, sets: s });
+  });
+  if (!exercises.length) { showToast('種目名を入力してください'); return; }
+  const data = load(KEYS.training);
+  data.push({ date: today(), exercises, id: Date.now() });
+  save(KEYS.training, data);
+  document.getElementById('trainingRows').innerHTML = '';
+  trainingRowCount = 0;
+  showToast('保存しました！');
+  renderTrainingRecords();
+}
+
+function deleteTraining(id) {
+  const data = load(KEYS.training).filter(r => r.id !== id);
+  save(KEYS.training, data);
+  renderTrainingRecords();
+}
+
+function renderTrainingRecords() {
+  const records = load(KEYS.training).filter(r => r.date === today());
+  const el = document.getElementById('trainingRecords');
+  if (!records.length) { el.innerHTML = '<p style="color:var(--text2);font-size:13px;">まだ記録がありません。</p>'; return; }
+  el.innerHTML = records.map(r =>
+    `<div class="record-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+      <div style="display:flex;justify-content:space-between;width:100%;">
+        <span style="font-size:12px;color:var(--text2);">${r.date}</span>
+        <button class="del-btn" onclick="deleteTraining(${r.id})">×</button>
+      </div>
+      ${r.exercises.map(e => `<span style="font-size:13px;">${e.name} ${e.weight ? e.weight + 'kg' : ''} ${e.reps ? '×' + e.reps : ''} ${e.sets ? '×' + e.sets + 'sets' : ''}</span>`).join('<br>')}
+    </div>`
+  ).join('');
+}
+
+function renderPhysical() {
+  renderPresets();
+  renderWeightChart();
+  renderTrainingRecords();
+  // Pre-fill weight
+  const wr = load(KEYS.weight).find(r => r.date === today());
+  if (wr) document.getElementById('weightInput').value = wr.weight;
+}
+
+// ===== Report =====
+function generateReport() {
+  const d = document.getElementById('reportDate').value || today();
+  const study = load(KEYS.study).filter(r => r.date === d);
+  const health = load(KEYS.health).find(r => r.date === d);
+  const weight = load(KEYS.weight).find(r => r.date === d);
+  const training = load(KEYS.training).filter(r => r.date === d);
+
+  let report = `【日報 ${formatDate(d)}】\n\n`;
+
+  // Study
+  report += '■ 勉強\n';
+  if (study.length) {
+    let totalMin = 0;
+    study.forEach(s => {
+      const h = Math.floor(s.minutes / 60);
+      const m = s.minutes % 60;
+      report += `・${s.subject}: ${h}h${m.toString().padStart(2, '0')}m\n`;
+      totalMin += s.minutes;
+    });
+    const th = Math.floor(totalMin / 60);
+    const tm = totalMin % 60;
+    report += `合計: ${th}h${tm.toString().padStart(2, '0')}m\n`;
+    const memos = study.filter(s => s.memo).map(s => s.memo);
+    if (memos.length) report += `メモ: ${memos.join(' / ')}\n`;
+  } else {
+    report += '・記録なし\n';
+  }
+
+  // Health
+  report += '\n■ 生活習慣\n';
+  if (health) {
+    const condStars = '★'.repeat(health.condition) + '☆'.repeat(5 - health.condition);
+    const stressStars = health.stress ? '★'.repeat(health.stress) + '☆'.repeat(5 - health.stress) : '-';
+    if (health.wakeTime && health.bedTime) report += `・起床: ${health.wakeTime} / 就寝: ${health.bedTime}\n`;
+    report += `・睡眠: ${health.sleep}h\n`;
+    report += `・体調: ${condStars} / ストレス: ${stressStars} / 気分: ${health.mood || '-'}\n`;
+    if (health.meals) {
+      const mealStr = [health.meals.asa && '朝', health.meals.hiru && '昼', health.meals.yoru && '夜'].filter(Boolean).join('・') || 'なし';
+      report += `・食事: ${mealStr}\n`;
+    }
+    report += `・アルコール: ${health.alcohol ? 'あり' : 'なし'}\n`;
+    if (health.memo) report += `・メモ: ${health.memo}\n`;
+  } else {
+    report += '・記録なし\n';
+  }
+
+  // Physical
+  report += '\n■ フィジカル\n';
+  if (weight) report += `・体重: ${weight.weight}kg\n`;
+  if (training.length) {
+    training.forEach(t => {
+      t.exercises.forEach(e => {
+        report += `・${e.name}`;
+        if (e.weight) report += ` ${e.weight}kg`;
+        if (e.reps) report += `×${e.reps}`;
+        if (e.sets) report += `×${e.sets}`;
+        report += '\n';
+      });
+    });
+  }
+  if (!weight && !training.length) report += '・記録なし\n';
+
+  document.getElementById('reportPreview').textContent = report;
+}
+
+function copyReport() {
+  const text = document.getElementById('reportPreview').textContent;
+  if (text.includes('生成する')) { showToast('先に日報を生成してください'); return; }
+  navigator.clipboard.writeText(text).then(() => showToast('コピーしました！')).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('コピーしました！');
+  });
+}
+
+// ===== Dashboard =====
+function renderDashboard() {
+  // Summary
+  const studyData = load(KEYS.study).filter(r => r.date === today());
+  const totalStudy = studyData.reduce((a, r) => a + r.minutes, 0);
+  const health = load(KEYS.health).find(r => r.date === today());
+  const weight = load(KEYS.weight).find(r => r.date === today());
+  const training = load(KEYS.training).filter(r => r.date === today());
+
+  const sh = Math.floor(totalStudy / 60);
+  const sm = totalStudy % 60;
+
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="summary-card"><div class="num">${sh}h${sm.toString().padStart(2,'0')}m</div><div class="lbl">今日の勉強</div></div>
+    <div class="summary-card"><div class="num">${health ? health.sleep + 'h' : '-'}</div><div class="lbl">睡眠</div></div>
+    <div class="summary-card"><div class="num">${weight ? weight.weight + 'kg' : '-'}</div><div class="lbl">体重</div></div>
+    <div class="summary-card"><div class="num">${training.length ? training.reduce((a, t) => a + t.exercises.length, 0) + '種目' : '-'}</div><div class="lbl">トレーニング</div></div>
+  `;
+
+  // Timeline (7 days)
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+
+  const allStudy = load(KEYS.study);
+  const allHealth = load(KEYS.health);
+  const allWeight = load(KEYS.weight);
+  const allTraining = load(KEYS.training);
+
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = days.map(d => {
+    const ds = allStudy.filter(r => r.date === d);
+    const dh = allHealth.find(r => r.date === d);
+    const dw = allWeight.find(r => r.date === d);
+    const dt = allTraining.filter(r => r.date === d);
+
+    let content = '';
+    if (ds.length) {
+      const total = ds.reduce((a, r) => a + r.minutes, 0);
+      const h = Math.floor(total / 60), m = total % 60;
+      content += `📚 ${h}h${m.toString().padStart(2,'0')}m (${ds.map(s => s.subject).join(', ')})`;
+    }
+    if (dh) {
+      if (content) content += '<br>';
+      const stars = '★'.repeat(dh.condition) + '☆'.repeat(5 - dh.condition);
+      content += `💊 睡眠 ${dh.sleep}h ${stars} ${dh.mood || ''}`;
+    }
+    if (dw) {
+      if (content) content += '<br>';
+      content += `⚖️ ${dw.weight}kg`;
+    }
+    if (dt.length) {
+      if (content) content += '<br>';
+      const names = dt.flatMap(t => t.exercises.map(e => e.name));
+      content += `💪 ${names.join(', ')}`;
+    }
+    if (!content) content = '<span style="color:var(--text2);">記録なし</span>';
+
+    return `<div class="timeline-item">
+      <div class="tl-date">${formatDate(d)} ${d === today() ? '(今日)' : ''}</div>
+      <div class="tl-content">${content}</div>
+    </div>`;
+  }).join('');
+
+  // Weekly study chart
+  const weekChart = document.getElementById('weeklyChart');
+  const weekDays = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    weekDays.push(d.toISOString().slice(0, 10));
+  }
+  const maxStudy = Math.max(...weekDays.map(d => allStudy.filter(r => r.date === d).reduce((a, r) => a + r.minutes, 0)), 1);
+  weekChart.innerHTML = weekDays.map(d => {
+    const total = allStudy.filter(r => r.date === d).reduce((a, r) => a + r.minutes, 0);
+    const h = Math.floor(total / 60), m = total % 60;
+    const pct = total / maxStudy * 100;
+    return `<div class="bar-col">
+      <div class="bar-value">${total ? h + 'h' + m + 'm' : '-'}</div>
+      <div class="bar" style="height:${Math.max(pct, 2)}%;background:var(--accent);"></div>
+      <div class="bar-label">${d.slice(5)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ===== Settings =====
+function renderSettings() {
+  // Subjects
+  const el = document.getElementById('subjectSettings');
+  el.innerHTML = getSubjects().map((s, i) =>
+    `<div class="record-item"><span>${s}</span><button class="del-btn" onclick="removeSubject(${i})">×</button></div>`
+  ).join('');
+
+  // Presets
+  const pl = document.getElementById('presetSettings');
+  pl.innerHTML = getPresets().map((p, i) =>
+    `<div class="record-item"><span>${p}</span><button class="del-btn" onclick="removePreset(${i})">×</button></div>`
+  ).join('');
+
+  // Topic subject selector
+  const sel = document.getElementById('topicSubjectSelect');
+  const subjects = getSubjects();
+  sel.innerHTML = subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+  renderTopicSettings();
+}
+
+function renderTopicSettings() {
+  const subject = document.getElementById('topicSubjectSelect').value;
+  if (!subject) return;
+  const defaults = SUBJECT_TOPICS[subject] || [];
+  const custom = loadTopicsStore()[subject] || [];
+  const el = document.getElementById('topicSettings');
+  if (!defaults.length && !custom.length) {
+    el.innerHTML = '<p style="font-size:13px;color:var(--text2);">まだ分野が登録されていません。</p>';
+    return;
+  }
+  const defaultItems = defaults.map(t =>
+    `<div class="record-item"><span style="color:var(--text2);">📌 ${t}</span></div>`
+  ).join('');
+  const customItems = custom.map((t, i) =>
+    `<div class="record-item"><span>${t}</span><button class="del-btn" onclick="removeTopicFromSubject(${i})">×</button></div>`
+  ).join('');
+  el.innerHTML = defaultItems + customItems;
+}
+
+function addTopicToSubject() {
+  const subject = document.getElementById('topicSubjectSelect').value;
+  const input = document.getElementById('newTopic');
+  const name = input.value.trim();
+  if (!name || !subject) return;
+  const store = loadTopicsStore();
+  if (!store[subject]) store[subject] = [];
+  if (!store[subject].includes(name)) {
+    store[subject].push(name);
+    saveTopicsStore(store);
+  }
+  input.value = '';
+  renderTopicSettings();
+  showToast('分野を追加しました！');
+}
+
+function removeTopicFromSubject(i) {
+  const subject = document.getElementById('topicSubjectSelect').value;
+  const store = loadTopicsStore();
+  if (!store[subject]) return;
+  store[subject].splice(i, 1);
+  saveTopicsStore(store);
+  renderTopicSettings();
+}
+
+function addSubject() {
+  const input = document.getElementById('newSubject');
+  const name = input.value.trim();
+  if (!name) return;
+  const subjects = getSubjects();
+  subjects.push(name);
+  save(KEYS.subjects, subjects);
+  input.value = '';
+  renderSettings();
+}
+
+function removeSubject(i) {
+  const subjects = getSubjects();
+  subjects.splice(i, 1);
+  save(KEYS.subjects, subjects);
+  renderSettings();
+}
+
+function addPreset() {
+  const input = document.getElementById('newPreset');
+  const name = input.value.trim();
+  if (!name) return;
+  const presets = getPresets();
+  presets.push(name);
+  save(KEYS.presets, presets);
+  input.value = '';
+  renderSettings();
+}
+
+function removePreset(i) {
+  const presets = getPresets();
+  presets.splice(i, 1);
+  save(KEYS.presets, presets);
+  renderSettings();
+}
+
+function exportData() {
+  const data = {};
+  Object.entries(KEYS).forEach(([k, v]) => { data[k] = load(v); });
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `self-management-${today()}.json`;
+  a.click();
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      Object.entries(KEYS).forEach(([k, v]) => { if (data[k]) save(v, data[k]); });
+      showToast('データをインポートしました！');
+      renderDashboard();
+    } catch { showToast('無効なファイルです'); }
+  };
+  reader.readAsText(file);
+}
+
+// ===== Init =====
+document.getElementById('headerDate').textContent = formatDate(today());
+renderDashboard();
+</script>
+</body>
+</html>
